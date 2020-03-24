@@ -1,0 +1,5 @@
+
+sources:
+  "1.9.0":
+    url: "https://www.freedesktop.org/software/libevdev/libevdev-1.9.0.tar.xz"
+    sha256: "e7e18a64264f2dea19b6c50a481f8c062529d42919ccda0bc861495bce28eb9e"

@@ -1,0 +1,68 @@
+cmake_minimum_required(VERSION 3.1)
+project(libevdev C)
+set(PROJECT_VERSION_MAJOR 1)
+set(PROJECT_VERSION_MINOR 9)
+set(PROJECT_VERSION_PATCH 0)
+set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+include(GNUInstallDirs)
+
+option(LIBEVDEV_SHARED_LIB "Build shared libraries" OFF)
+option(LIBEVDEV_STATIC_LIB "Build shared libraries" ON)
+
+set(LIBEVDEV libevdev)
+
+if ((LIBEVDEV_OVERRIDE_BUILD_SHARED_LIBS AND LIBEVDEV_BUILD_SHARED_LIBS) OR ((NOT LIBEVDEV_OVERRIDE_BUILD_SHARED_LIBS) AND BUILD_SHARED_LIBS))
+    set(LIBEVDEV_LIBRARY_TYPE SHARED)
+else()
+    set(LIBEVDEV_LIBRARY_TYPE STATIC)
+endif()
+
+file(TOUCH ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+find_package (Python COMPONENTS Interpreter)
+
+set(LIBEVDEV_PUBLIC_HEADERS
+    ${PROJECT_SOURCE_DIR}/libevdev/libevdev.h
+    ${PROJECT_SOURCE_DIR}/libevdev/libevdev-uinput.h
+)
+
+include_directories(
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${PROJECT_SOURCE_DIR}/include
+)
+
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/event-names.h
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/linux/input.h ${CMAKE_CURRENT_SOURCE_DIR}/include/linux/input-event-codes.h
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/libevdev/make-event-names.py ${CMAKE_CURRENT_SOURCE_DIR}/include/linux/input.h ${CMAKE_CURRENT_SOURCE_DIR}/include/linux/input-event-codes.h > ${CMAKE_CURRENT_BINARY_DIR}/event-names.h
+)
+
+set(LIBEVDEV_SOURCES
+    libevdev/libevdev.c
+    libevdev/libevdev-names.c
+    ${CMAKE_CURRENT_BINARY_DIR}/event-names.h
+    ${LIBEVDEV_PUBLIC_HEADERS}
+)
+
+if(LIBEVDEV_SHARED_LIB)
+    add_library("${LIBEVDEV}" SHARED "${HEADERS}" "${LIBEVDEV_SOURCES}")
+    set_target_properties("${LIBEVDEV}" PROPERTIES OUTPUT_NAME "${LIBEVDEV}")
+    set_target_properties("${LIBEVDEV}" PROPERTIES PUBLIC_HEADER {LIBEVDEV_PUBLIC_HEADERS})
+    set_target_properties("${LIBEVDEV}" PROPERTIES PREFIX "")
+    install(TARGETS ${LIBEVDEV}
+        PUBLIC_HEADER
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIBEVDEV}
+    )
+
+endif()
+
+if(LIBEVDEV_STATIC_LIB)
+    add_library("${LIBEVDEV}-static" STATIC "${HEADERS}" "${LIBEVDEV_SOURCES}")
+    set_target_properties("${LIBEVDEV}-static" PROPERTIES OUTPUT_NAME "${LIBEVDEV}")
+    set_target_properties("${LIBEVDEV}-static" PROPERTIES PUBLIC_HEADER {LIBEVDEV_PUBLIC_HEADERS})
+    set_target_properties("${LIBEVDEV}-static" PROPERTIES PREFIX "")
+    install(TARGETS ${LIBEVDEV}-static
+        PUBLIC_HEADER
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIBEVDEV}
+    )
+endif()
+
